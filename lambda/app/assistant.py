@@ -180,14 +180,19 @@ def _cited(text, sources):
     Search returns its closest passages even when none of them answers the question.
     Listing all of them under "that isn't covered" looks like evidence and isn't.
     """
-    # The model sometimes puts "Sources:" at the end of its last sentence rather
-    # than on its own line, so look for the last occurrence anywhere.
     lowered = text.lower()
-    marker = lowered.rfind("sources:")
+    marker = max(lowered.rfind("sources:"), lowered.rfind("source:"))
     if marker == -1:
         return []
-    cited = lowered[marker:]
-    return [source for source in sources if source["title"].lower() in cited]
+    norm = lambda s: re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
+    cited = norm(lowered[marker:])
+    exact = [s for s in sources if norm(s["title"]) in cited]
+    if exact:
+        return exact
+    # Models often drop a country or year qualifier: "Parental Leave Policy" for
+    # "Parental Leave Policy (United Kingdom)", "Per Diem Rates" for "Per Diem Rates 2026".
+    short = lambda t: norm(re.sub(r"\(.*?\)|\b(19|20)\d{2}\b", "", t))
+    return [s for s in sources if short(s["title"]) and short(s["title"]) in cited]
 
 
 def _strip_empty_sources(text, sources):

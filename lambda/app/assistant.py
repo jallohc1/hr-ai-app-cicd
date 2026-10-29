@@ -402,7 +402,7 @@ def _answer(question, history, employee, question_guardrail=None):
                 # rule of the code, not a request to the model.
                 # Policy figures must come from policy documents, not inferred salaries.
                 policy_question = re.search(
-                    r"\b(policy|policies|carryover|carry over|roll(ed|ing)? (it |them |\w+ )?over|rollover|vacation|annual leave|salary band|pay band|entitlement|tuition|degrees?|pto|time off)\b",
+                    r"\b(policy|policies|carryover|carry over|roll(ed|ing)? (it |them |\w+ )?over|rollover|vacation|annual leave|sick|mileage|expenses?|reimburs\w*|leave|allowance|holidays?|salary band|pay band|entitlement|tuition|degrees?|pto|time off)\b",
                     contextual_question, re.I,
                 )
                 if policy_question:

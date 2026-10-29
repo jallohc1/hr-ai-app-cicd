@@ -16,6 +16,10 @@ SAFE_REPLY = 'I could not verify that answer. Please contact People Operations.'
 JUDGE_SETTINGS = {'maxTokens': 1024, 'temperature': 0}
 
 
+_COMMENTARY = re.compile(
+    r"revised draft|i (cannot|can't) support|i must revise|\bthe (draft|evidence|assessment)\b", re.IGNORECASE)
+
+
 def tool_evidence(messages):
     """Every tool result in the conversation: the only evidence a draft may rely on."""
     evidence = []
@@ -115,11 +119,17 @@ def validate_answer(question, draft, messages, employee, client, remaining_secon
                     draft = converse_text(client, model,
                         'Revise the draft using only supplied evidence and the assessment. '
                         'Do not call tools or introduce unsupported facts. If unsupported, refuse '
-                        'or request clarification. Preserve Sources citations when applicable.',
+                        'or request clarification. Preserve Sources citations when applicable. '
+                        'Reply with only the final answer for the employee: no assessment, '
+                        'no commentary about the draft or evidence, no "Revised draft" label.',
                         {'question': question, 'draft': draft, 'evidence': evidence,
                          'assessment': verdict['reason']})
                     update_current_span(input={'draft': first_draft, 'assessment': verdict['reason']},
                                         output={'revised_draft': draft})
+                if _COMMENTARY.search(draft):
+                    # A revision that talks about the draft or the evidence is not an answer.
+                    # The judge passes it (it makes no unsupported claim), so stop it here.
+                    return _judge_result(first_draft, SAFE_REPLY, 'safe reply: revision returned commentary', 1)
         outcome = 'safe reply: failed twice'
     except Exception as error:
         print(json.dumps({'event': 'inline_judge', 'status': 'error_fallback',

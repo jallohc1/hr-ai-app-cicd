@@ -130,6 +130,19 @@ def metrics_for(judge):
     ]
 
 
+def without_sources(text):
+    """The answer without its closing "Sources:" line.
+
+    Citations are required by design. Answer Relevancy splits an answer into statements
+    and, on a one-line answer, scored the citation as an off-topic statement (0.50).
+    Only that metric gets this version; the others still see the citation.
+    """
+    matches = list(re.finditer(r"sources?:", text, re.IGNORECASE))
+    if not matches:
+        return text
+    return text[:matches[-1].start()].strip() or text
+
+
 def main():
     report = json.loads((ROOT / 'build' / 'evaluation.json').read_text())
     cases = json.loads((ROOT / 'lambda' / 'data' / 'evaluation_questions.json').read_text(encoding='utf-8'))
@@ -150,8 +163,10 @@ def main():
         passages = [passage['content'] for passage in context['passages']]
         test_case = LLMTestCase(input=case['question'], actual_output=answer,
                                 expected_output=json.dumps(reference), retrieval_context=passages)
+        content_case = LLMTestCase(input=case['question'], actual_output=without_sources(answer),
+                                   expected_output=json.dumps(reference), retrieval_context=passages)
         for metric in metrics_for(judge):
-            metric.measure(test_case)
+            metric.measure(content_case if isinstance(metric, AnswerRelevancyMetric) else test_case)
             results.append({'case': index + 1, 'group': case['group'], 'metric': metric.__name__,
                             'score': round(metric.score, 3), 'passed': metric.is_successful(),
                             'reason': metric.reason})

@@ -17,9 +17,12 @@ do not need to use paid time off.
 - 3 working days on the death of another close family member or a close friend
 - 1 working day to attend a funeral in any other case
 
-These are minimums. If you need more time, ask. Managers are expected to agree additional
-paid or unpaid leave where it is needed, and to involve People Operations rather than decline
-a request themselves.
+These are minimums.
+
+## If you need more time
+
+If you need more time, ask. Managers are expected to agree additional paid or unpaid leave
+where it is needed, and to involve People Operations rather than decline a request themselves.
 
 ## Taking the leave
 

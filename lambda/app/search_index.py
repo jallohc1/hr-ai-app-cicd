@@ -53,6 +53,26 @@ def client():
     )
 
 
+def _search(*args, **kwargs):
+    """client().search, retried while a scaled-down collection wakes up.
+
+    OpenSearch Serverless answers 503 for a few seconds after a quiet period. The
+    client's own retries all land within one second, which is too soon, so CI runs
+    that started after a pause failed their first questions. Back off instead:
+    0.5, 1, 2 and 4 seconds (7.5 s in all), then raise. Other errors raise at once.
+    """
+    import time
+    from opensearchpy.exceptions import TransportError
+    for wait in (0.5, 1, 2, 4, None):
+        try:
+            return client().search(*args, **kwargs)
+        except TransportError as error:
+            if error.status_code != 503 or wait is None:
+                raise
+            print(f"search 503, collection waking up; retrying in {wait}s")
+            time.sleep(wait)
+
+
 def vector_field():
     """How the 1024 numbers from Titan are stored and compared.
 
@@ -142,7 +162,7 @@ def search(vector, access_levels, include_superseded=False, statuses=None, regio
     if filenames is not None:
         filters.append({"terms": {"filename": filenames}})
 
-    response = client().search(
+    response = _search(
         index=config.POLICY_INDEX,
         body={
             "size": config.RESULTS_PER_SEARCH,
@@ -214,7 +234,7 @@ def keyword_search(text, access_levels, include_superseded=False):
     with no lock on it, returning hr_only text to anyone who typed the right
     word. Two searches, one access rule.
     """
-    response = client().search(
+    response = _search(
         index=config.POLICY_INDEX,
         body={
             "size": config.RESULTS_PER_SEARCH,
